@@ -35,7 +35,7 @@ def test_read_users(client: TestClient):
             }
         ]
     }
-    
+
 
 def test_update_user(client):
     response = client.put(
@@ -53,4 +53,11 @@ def test_update_user(client):
         "email": "exemplo2@gmail.com",
         "id": 1,
     }
+
+
+def update_invalid_user(client):
+    response = client.put("/users/500")
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "User not found"}
 
