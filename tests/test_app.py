@@ -61,3 +61,18 @@ def update_invalid_user(client):
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {"detail": "User not found"}
 
+
+
+def test_update_user_id(client):
+    response = client.put(
+        "/users/909",
+        json={
+            "id": 909,
+            "username": "testusername2",
+            "password": "password",
+            "email": "exemplo2@gmail.com",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "User not found"}
