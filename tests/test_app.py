@@ -20,3 +20,18 @@ def test_create_user(client: TestClient):
         "id": 1,
         "email": "exemplo@gmail.com",
     }
+
+
+def test_read_users(client: TestClient):
+    response = client.get("/users/")
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {
+        "users": [
+            {
+                "username": "testusername",
+                "id": 1,
+                "email": "exemplo@gmail.com",
+            }
+        ]
+    }
