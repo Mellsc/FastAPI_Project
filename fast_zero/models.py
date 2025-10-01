@@ -1,12 +1,11 @@
 from datetime import datetime 
 from sqlalchemy import func
 from sqlalchemy.orm import (registry, Mapped, mapped_column)
-from sqlalchemy import create_engine
 
 table_registry = registry()
 
 
-#tabela que gerencia o registro de usuarios num banco de dados
+#Table that manages user registration in a database
 @table_registry.mapped_as_dataclass
 class User:
     __tablename__ = 'users'
@@ -18,5 +17,6 @@ class User:
     created_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now()
     )
-
-
+    updadate_at: Mapped[datetime] = mapped_column(init=False,
+                                                  server_default=func.now(),
+                                                  onupdate=func.now)
