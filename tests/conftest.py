@@ -52,3 +52,7 @@ def _mock_db_time(*, model, time=datetime(2024, 1, 1)):
 
     event.remove(model, 'before_insert', fake_time_hook) 
 
+
+@pytest.fixture()
+def mock_db_time():
+    return _mock_db_time()
