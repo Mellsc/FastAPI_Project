@@ -3,8 +3,10 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from fast_zero.database import get_session
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from fast_zero.models import User
 from fast_zero.schemas import UserSchema,UserPublic, UserList, Message
+from fast_zero.security import get_password_hash
 
 
 app = FastAPI()
@@ -22,18 +24,18 @@ def create_user(user: UserSchema, session: Session=Depends(get_session)):
         if db_user.username == user.username:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT,
-                detail='Username já existe.'
+                detail='Username already exists'
             )
         elif db_user.email == user.email:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT,
-                detail='Email já existe.'
+                detail='Email already exists'
             )
 
     db_user = User(
         username=user.username,
         email=user.email,
-        password=user.password
+        password= get_password_hash(user.password) 
     )
 
     session.add(db_user)
@@ -58,17 +60,22 @@ def update_user(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='User not found'
         )
+    
+    try:
+        db_user.username = user.username
+        db_user.password = get_password_hash(user.password)
+        db_user.email = user.email
+        session.commit()
+        session.refresh(db_user)
 
-    db_user.username = user.username
-    db_user.password = user.password
-    db_user.email = user.email
+        return db_user
 
-    session.commit()
-    session.refresh(db_user)
-
-    return db_user
-
-
+    except IntegrityError: 
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT, 
+            detail='Username or Email already exists')
+    
+    
 @app.delete("/users/{user_id}", response_model=Message)
 def delete_user(user_id:int, session: Session = Depends(get_session)):
     db_user = session.scalar(select(User).where(User.id == user_id))
