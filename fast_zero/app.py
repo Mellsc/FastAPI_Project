@@ -7,7 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from fast_zero.models import User
 from fast_zero.schemas import UserSchema,UserPublic, UserList, Message, Token
-from fast_zero.security import get_password_hash, verify_password, create_access_token
+from fast_zero.security import(
+     get_password_hash,
+     verify_password,
+     create_access_token,
+     get_current_user)
 
 
 app = FastAPI()
@@ -15,6 +19,7 @@ app = FastAPI()
 
 @app.post("/users/", status_code=HTTPStatus.CREATED, response_model=UserPublic)
 def create_user(user: UserSchema, session: Session=Depends(get_session)):
+    
     db_user = session.scalar(
         select(User).where(
             (User.username == user.username) | (User.email == user.email)
@@ -47,14 +52,16 @@ def create_user(user: UserSchema, session: Session=Depends(get_session)):
 
 
 @app.get("/users/", response_model=UserList)
-def read_users(skip: int= 0, limit: int = 10, session: Session=Depends(get_session)):
+def read_users(skip: int= 0, limit: int = 10, 
+               session: Session=Depends(get_session)):
     users = session.scalars(select(User).offset(skip).limit(limit)).all()
     return{"users": users}
 
 
 @app.put('/users/{user_id}', response_model=UserPublic)
 def update_user(
-    user_id: int, user: UserSchema, session: Session = Depends(get_session)):
+    user_id: int, user: UserSchema, session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),):
 
     db_user = session.scalar(select(User).where(User.id == user_id))
     if not db_user:
@@ -78,7 +85,8 @@ def update_user(
     
     
 @app.delete("/users/{user_id}", response_model=Message)
-def delete_user(user_id:int, session: Session = Depends(get_session)):
+def delete_user(user_id:int, session: Session = Depends(get_session),
+                current_user=Depends(get_current_user), ):
     db_user = session.scalar(select(User).where(User.id == user_id))
 
     if not db_user:
@@ -93,14 +101,14 @@ def delete_user(user_id:int, session: Session = Depends(get_session)):
 
 
 @app.post('/token', response_model=Token)
-def login_for_acess_token(
+def login_authenticate(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: Session = Depends(get_session),
 ):
     user = session.scalar(select(User).where(User.email == form_data.username))
 
     if not user or not verify_password(form_data.password, user.password):
-        raise HTTPException(status_code = 400, detail = 'Incorrect email or password')
+        raise HTTPException(status_code = 401, detail = 'Unauthorized')
     
     access_token = create_access_token(data={'sub': user.email})
     return{'access_token': access_token, 'token_type': 'Bearer'}
