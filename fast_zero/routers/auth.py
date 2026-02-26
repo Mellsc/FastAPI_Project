@@ -6,16 +6,18 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fast_zero.schemas import Token
 from fast_zero.models import User
 from fast_zero.security import verify_password, create_access_token
+from typing import Annotated
 
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 
-
+SessionDep = Annotated[Session, Depends(get_session)]
+Oauth2 = Annotated[OAuth2PasswordRequestForm, Depends()]
 
 @router.post('/token', response_model=Token)
 def login_authenticate(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    session: Session = Depends(get_session),
+    form_data: Oauth2,
+    session: SessionDep
 ):
     user = session.scalar(select(User).where(User.email == form_data.username))
 
