@@ -11,11 +11,11 @@ from typing import Annotated
 
 router = APIRouter(prefix='/users', tags=['users'])
 
-session = Annotated[Session, Depends(get_session)]
+SessionDep = Annotated[Session, Depends(get_session)]
 current_user = Annotated[User, Depends(get_current_user)]
 
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=UserPublic)
-def create_user(user: UserSchema, session: Session):
+def create_user(user: UserSchema, session: SessionDep):
     
     db_user = session.scalar(
         select(User).where(
@@ -49,7 +49,7 @@ def create_user(user: UserSchema, session: Session):
 
 
 @router.get("/", response_model=UserList)
-def read_users(session: Session, skip: int= 0, limit: int = 10):
+def read_users(session: SessionDep, skip: int= 0, limit: int = 10):
     
     users = session.scalars(select(User).offset(skip).limit(limit)).all()
     return{"users": users}
@@ -57,7 +57,7 @@ def read_users(session: Session, skip: int= 0, limit: int = 10):
 
 @router.put('/{user_id}', response_model=UserPublic)
 def update_user(
-    user_id: int, user: UserSchema, session: Session,
+    user_id: int, user: UserSchema, session: SessionDep,
     current_user: User):
 
     if current_user.id != user_id:
@@ -83,7 +83,7 @@ def update_user(
 @router.delete('/{user_id}', response_model=Message)
 def delete_user(
     user_id: int,
-    session: Session,
+    session: SessionDep,
     current_user: User
 ):
     if current_user.id != user_id:
