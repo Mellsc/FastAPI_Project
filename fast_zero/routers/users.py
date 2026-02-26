@@ -1,22 +1,24 @@
+from http import HTTPStatus
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
 from fast_zero.database import get_session
 from fast_zero.models import User
 from fast_zero.schemas import Message, UserList, UserPublic, UserSchema
 from fast_zero.security import get_current_user, get_password_hash
-from fastapi import APIRouter, Depends, HTTPException
-from http import HTTPStatus
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-from typing import Annotated
 
-router = APIRouter(prefix='/users', tags=['users'])
+router = APIRouter(prefix="/users", tags=["users"])
 
 SessionDep = Annotated[Session, Depends(get_session)]
 current_user = Annotated[User, Depends(get_current_user)]
 
+
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=UserPublic)
 def create_user(user: UserSchema, session: SessionDep):
-    
     db_user = session.scalar(
         select(User).where(
             (User.username == user.username) | (User.email == user.email)
@@ -27,18 +29,17 @@ def create_user(user: UserSchema, session: SessionDep):
         if db_user.username == user.username:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT,
-                detail='Username already exists'
+                detail="Username already exists",
             )
         elif db_user.email == user.email:
             raise HTTPException(
-                status_code=HTTPStatus.CONFLICT,
-                detail='Email already exists'
+                status_code=HTTPStatus.CONFLICT, detail="Email already exists"
             )
 
     db_user = User(
         username=user.username,
         email=user.email,
-        password= get_password_hash(user.password) 
+        password=get_password_hash(user.password),
     )
 
     session.add(db_user)
@@ -49,20 +50,18 @@ def create_user(user: UserSchema, session: SessionDep):
 
 
 @router.get("/", response_model=UserList)
-def read_users(session: SessionDep, skip: int= 0, limit: int = 10):
-    
+def read_users(session: SessionDep, skip: int = 0, limit: int = 10):
     users = session.scalars(select(User).offset(skip).limit(limit)).all()
-    return{"users": users}
+    return {"users": users}
 
 
-@router.put('/{user_id}', response_model=UserPublic)
+@router.put("/{user_id}", response_model=UserPublic)
 def update_user(
-    user_id: int, user: UserSchema, session: SessionDep,
-    current_user: User):
-
+    user_id: int, user: UserSchema, session: SessionDep, current_user: User
+):
     if current_user.id != user_id:
-         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not enough permissions"
         )
 
     try:
@@ -74,25 +73,21 @@ def update_user(
 
         return current_user
 
-    except IntegrityError: 
+    except IntegrityError:
         raise HTTPException(
-            status_code=HTTPStatus.CONFLICT, 
-            detail='Username or Email already exists')
-    
-    
-@router.delete('/{user_id}', response_model=Message)
-def delete_user(
-    user_id: int,
-    session: SessionDep,
-    current_user: User
-):
+            status_code=HTTPStatus.CONFLICT,
+            detail="Username or Email already exists",
+        )
+
+
+@router.delete("/{user_id}", response_model=Message)
+def delete_user(user_id: int, session: SessionDep, current_user: User):
     if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
+            status_code=HTTPStatus.FORBIDDEN, detail="Not enough permissions"
         )
 
     session.delete(current_user)
     session.commit()
 
-    return {'message': 'User deleted'}
-
+    return {"message": "User deleted"}

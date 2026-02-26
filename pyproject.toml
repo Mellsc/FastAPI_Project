@@ -10,12 +10,16 @@ fastapi = {extras = ["standard"], version = "^0.115.0"}
 sqlalchemy = "^2.0.41"
 pydantic-settings = "^2.10.1"
 alembic = "^1.16.5"
+pwdlib = {extras = ["argon2"], version = "^0.3.0"}
+python-multipart = "^0.0.21"
+pyjwt = "^2.10.1"
 
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.7.0"
 pytest = "^8.3.3"
 pytest-cov = "^6.0.0"
+taskipy = "^1.14.1"
 
 [tool.pytest.ini_options]
 pythonpath = "."
@@ -26,7 +30,7 @@ line-length = 79
 
 [tool.ruff.lint]
 preview = true
-select = ['I','F','E','W','PL','PT']
+select = ['I','F','E','W','PL','PT', 'FAST']
 
 [tool.taskipy.tasks]
 lint = 'ruff check . .; ruff check . --diff'

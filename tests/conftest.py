@@ -1,3 +1,6 @@
+from contextlib import contextmanager
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -9,16 +12,13 @@ from fast_zero.database import get_session
 from fast_zero.models import User, table_registry
 from fast_zero.security import get_password_hash
 
-from contextlib import contextmanager
-from datetime import datetime
 
-
-@pytest.fixture()
+@pytest.fixture
 def session():
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool
+        poolclass=StaticPool,
     )
 
     table_registry.metadata.create_all(engine)
@@ -27,7 +27,7 @@ def session():
         yield session
 
 
-@pytest.fixture()
+@pytest.fixture
 def client(session):
     def session_test_mock():
         return session
@@ -41,20 +41,19 @@ def client(session):
 
 
 @contextmanager
-def _mock_db_time(*, model, time=datetime(2024, 1, 1)): 
-
-    def fake_time_hook(mapper, connection, target): 
-        if hasattr(target, 'created_at'):
+def _mock_db_time(*, model, time=datetime(2024, 1, 1)):
+    def fake_time_hook(mapper, connection, target):
+        if hasattr(target, "created_at"):
             target.created_at = time
 
-        if hasattr(target, 'updated_at'): 
+        if hasattr(target, "updated_at"):
             target.updated_at = time
 
-    event.listen(model, 'before_insert', fake_time_hook) 
+    event.listen(model, "before_insert", fake_time_hook)
 
-    yield time 
+    yield time
 
-    event.remove(model, 'before_insert', fake_time_hook) 
+    event.remove(model, "before_insert", fake_time_hook)
 
 
 @pytest.fixture
@@ -62,10 +61,14 @@ def mock_db_time():
     return _mock_db_time
 
 
-@pytest.fixture()
+@pytest.fixture
 def user(session):
-    pwd = 'testtest'
-    user = User(username= 'teste', email = 'test@email.com', password= get_password_hash(pwd))
+    pwd = "testtest"
+    user = User(
+        username="teste",
+        email="test@email.com",
+        password=get_password_hash(pwd),
+    )
     session.add(user)
     session.commit()
     session.refresh(user)
@@ -74,11 +77,12 @@ def user(session):
 
     return user
 
-@pytest.fixture()
+
+@pytest.fixture
 def token(client, user):
     response = client.post(
-        '/token',
-        data={'username': user.email, 'password': user.clean_password},
+        "/auth/token",
+        data={"username": user.email, "password": user.clean_password},
     )
 
-    return response.json()['access_token']
+    return response.json()["access_token"]
