@@ -28,5 +28,5 @@ class Token(BaseModel):
 
 
 class Filter(BaseModel):
-    offset: int = Field(0, ge= 0)
-    limit: int = Field(100, ge= 1)
+    offset: int = Field(0, ge=0)
+    limit: int = Field(100, ge=1)

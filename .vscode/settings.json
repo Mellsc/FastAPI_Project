@@ -1,0 +1,11 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "sqlite:///databse.db",
+            "name": "db_fastapi",
+            "group": "db_fastapi"
+        }
+    ]
+}
