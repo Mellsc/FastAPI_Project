@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 
+import factory
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import event
@@ -97,18 +98,36 @@ def mock_db_time():
 @pytest_asyncio.fixture
 async def user(session):
     """
-    Cria um usuário temporário para testes.
+    Cria um usuário temporário para testes com factory boy.
 
     O usuário é salvo no banco de testes e retorna
     com uma senha limpa para autenticação
     durante os testes.
     """
     pwd = "testtest"
-    user = User(
-        username="teste",
-        email="test@email.com",
-        password=get_password_hash(pwd),
-    )
+    user = UserFactory(password=get_password_hash(pwd))
+
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    user.clean_password = pwd
+
+    return user
+
+
+@pytest_asyncio.fixture
+async def second_user(session):
+    """
+    Cria um usuário temporário para testes com factory boy.
+
+    O usuário é salvo no banco de testes e retorna
+    com uma senha limpa para autenticação
+    durante os testes.
+    """
+    pwd = "testtest"
+    user = UserFactory(password=get_password_hash(pwd))
+
     session.add(user)
     await session.commit()
     await session.refresh(user)
@@ -132,3 +151,16 @@ def token(client, user):
     )
 
     return response.json()["access_token"]
+
+
+class UserFactory(factory.Factory):
+    """ Essa classe e uma fabrica de dados para teste
+        cria uam sequencia de usuarios randomicos """
+    class Meta:
+        model = User
+
+    username = factory.Sequence(lambda n: f"test{n}")
+    email = factory.LazyAttribute(lambda obj: f"{obj.username}@test.com")
+    password = factory.LazyAttribute(
+        lambda obj: f"{obj.username}enasoiwh13943"
+    )
