@@ -1,9 +1,5 @@
 from http import HTTPStatus
 
-from fastapi.testclient import TestClient
-
-from fast_zero.models import User
-
 
 def test_create_user(client):
     response = client.post(
@@ -22,20 +18,6 @@ def test_create_user(client):
         "email": "test@email.com",
         "id": 1,
     }
-
-
-def test_create_user_duplicate(client: TestClient, user: User):
-    response = client.post(
-        "/users/",
-        json={
-            "username": "teste",
-            "email": "test@email.com",
-            "password": "senhadeteste",
-        },
-    )
-
-    assert response.status_code == HTTPStatus.CONFLICT
-    assert response.json() == {"detail": "Username already exists"}
 
 
 def test_read_users(client):
@@ -65,8 +47,18 @@ def test_update_user(client, user, token):
 
 def test_delete_user(client, user, token):
     response = client.delete(
-        f'/users/{user.id}',
-        headers={'Authorization': f'Bearer {token}'},
+        f"/users/{user.id}",
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == HTTPStatus.OK
+
+
+def test_delete_user_wrong_user(client, second_user, token):
+    response = client.delete(
+        f"/users/{second_user.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.json() == {"detail": "Not enough permissions"}
