@@ -32,9 +32,8 @@ def test_expire_token(client, user):
     with freeze_time("2023-07-14 12:00:00"):
         response = client.post(
             "/auth/token",
-            data={"username": user.email, "password": user.clean_password},
-        )
-        assert response.status_code == HTTPStatus.OK
+            data={"username": user.email, "password": user.clean_password})
+        assert response.satus_code == HTTPStatus.OK
         token = response.json()["access_token"]
 
     with freeze_time("2023-07-14 12:31:00"):
