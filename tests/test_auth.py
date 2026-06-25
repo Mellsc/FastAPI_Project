@@ -48,3 +48,21 @@ def test_expire_token(client, user):
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED
         assert response.json() == {"detail": "Could not validate credentials"}
+
+
+def test_invalid_auth_email(client):
+    response = client.post(
+        '/auth/token',
+        data={'username': 'no_user@ex.com', 'password': 'notexsitpass'},
+    )
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Incorrect email or password'}
+
+
+def test_invalid_auth_password(client, user):
+    response = client.post(
+        '/auth/token',
+        data={'username': user.email, 'password': 'wrong_password'}
+    )
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Incorrect email or password'}
