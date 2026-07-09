@@ -1,5 +1,6 @@
 from typing import Annotated
 from http import HTTPStatus
+from fastapi import Query
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,3 +37,27 @@ async def create_task(
     return db_todo
 
 
+@router.get('/', response_model=TodoList)
+async def list_todos(
+    session: Session,
+    user: CurrentUser,
+    todo_filter: Annotated[TodoFilter, Query()],
+):
+    query = select(Todo).where(Todo.user_id == user.id)
+
+    if todo_filter.title:
+        query = query.filter(Todo.title.contains(todo_filter.title))
+
+    if todo_filter.description:
+        query = query.filter(
+            Todo.description.contains(todo_filter.description)
+        )
+
+    if todo_filter.state:
+        query = query.filter(Todo.state == todo_filter.state)
+
+    todos = await session.scalars(
+        query.offset(todo_filter.offset).limit(todo_filter.limit)
+    )
+
+    return {'todos': todos.all()}
