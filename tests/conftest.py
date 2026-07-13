@@ -2,6 +2,9 @@ from contextlib import contextmanager
 from datetime import datetime
 
 import factory
+import factory.fuzzy
+from fast_zero.models import TodoFilter, TodoState
+
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import event
@@ -154,8 +157,9 @@ def token(client, user):
 
 
 class UserFactory(factory.Factory):
-    """ Essa classe e uma fabrica de dados para teste
-        cria uam sequencia de usuarios randomicos """
+    """Essa classe e uma fabrica de dados para teste
+    cria uam sequencia de usuarios randomicos"""
+
     class Meta:
         model = User
 
@@ -164,3 +168,13 @@ class UserFactory(factory.Factory):
     password = factory.LazyAttribute(
         lambda obj: f"{obj.username}enasoiwh13943"
     )
+
+
+class TodoFactory(factory.Factory):
+    class Meta:
+        model = TodoFilter
+
+    title = factory.Faker('text')
+    description = factory.Faker('text')
+    state = factory.fuzzy.FuzzyChoice(TodoState)
+    user_id = 1
