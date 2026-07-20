@@ -37,3 +37,15 @@ async def test_filter_by_title(session, user, client, token):
 
     assert len(response.json()["todos"]) == tasks_user
 
+
+@pytest.mark.asyncio
+async def test_filter_by_descripition(session, user, client, token):
+    expected_todos = 5
+    session.add_all(
+        TodoFactory.create_batch(5, user_id=user.id, description="description")
+    )
+    await session.commit()
+
+    response = client.get(
+        "/tasks/?description=desc",
+        headers={"Authorization": f"Bearer {token}"}),
