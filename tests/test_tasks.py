@@ -102,3 +102,17 @@ async def test_all_tasks_params(
     )
 
     assert len(response.json()['todos']) == expected_todos
+
+
+@pytest.mark.asyncio
+async def test_todos_pagination(session, user, client, token):
+    pagination_todo = 2
+    session.add_all(TodoFactory.create_batch(5, user_id=user.id))
+    await session.commit()
+
+    response = client.get(
+        "/tasks/?offset=1&limit=2",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert len(response.json()["todos"]) == pagination_todo
