@@ -1,16 +1,20 @@
-from typing import Annotated
 from http import HTTPStatus
-from fastapi import Query
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fast_zero.database import get_session
 from fast_zero.models import Todo, User
-from fastapi import APIRouter, Depends, HTTPException
-from fast_zero.schemas import TodoFilter, TodoSchema, TodoPublic, TodoList
+from fast_zero.schemas import (
+    Message,
+    TodoFilter,
+    TodoList,
+    TodoPublic,
+    TodoSchema,
+)
 from fast_zero.security import get_current_user
-
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
@@ -18,12 +22,8 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-@router.post("/", status_code=HTTPStatus.CREATED, response_model= TodoPublic)
-async def create_task(
-    todo: TodoSchema,
-    user: CurrentUser,
-    session: Session):
-
+@router.post("/", status_code=HTTPStatus.CREATED, response_model=TodoPublic)
+async def create_task(todo: TodoSchema, user: CurrentUser, session: Session):
     db_todo = Todo(
         title=todo.title,
         description=todo.description,
@@ -37,8 +37,8 @@ async def create_task(
     return db_todo
 
 
-@router.get('/', response_model=TodoList)
-async def list_todos(
+@router.get("/", response_model=TodoList)
+async def list_and_filter_todos(
     session: Session,
     user: CurrentUser,
     todo_filter: Annotated[TodoFilter, Query()],
@@ -60,4 +60,24 @@ async def list_todos(
         query.offset(todo_filter.offset).limit(todo_filter.limit)
     )
 
-    return {'todos': todos.all()}
+    return {"todos": todos.all()}
+
+
+# deletando tarefas
+
+
+@router.delete("/{todo_id}", response_model=Message)
+async def delete_todo(todo_id: int, session: Session, user: CurrentUser):
+    todo = await session.scalar(
+        select(Todo).where(Todo.user_id == user.id, Todo.id == todo_id)
+    )
+
+    if not todo:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Task not found."
+        )
+
+    await session.delete(todo)
+    await session.commit()
+
+    return {"message": "Task has been deleted successfully."}
