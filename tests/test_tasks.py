@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import pytest
 
 from fast_zero.models import TodoState
@@ -24,7 +26,7 @@ def test_create_task(client, token):
 
 @pytest.mark.asyncio
 async def test_filter_by_title(session, user, client, token):
-    tasks_user = 5
+    expected_user = 5
     session.add_all(
         TodoFactory.create_batch(5, user_id=user.id, title="Test todo 1")
     )
@@ -35,12 +37,13 @@ async def test_filter_by_title(session, user, client, token):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert len(response.json()["todos"]) == tasks_user
+    assert len(response.json()["todos"]) == expected_user
 
 
 @pytest.mark.asyncio
-async def test_filter_by_descripition(session, user, client, token):
-    expected_todos = 5
+async def test_filter_by_description(session, user, client, token):
+    expected_user = 5
+
     session.add_all(
         TodoFactory.create_batch(5, user_id=user.id, description="description")
     )
@@ -48,9 +51,10 @@ async def test_filter_by_descripition(session, user, client, token):
 
     response = client.get(
         "/tasks/?description=desc",
-        headers={"Authorization": f"Bearer {token}"}),
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
-    assert len(response.json()["todos"]) == expected_todos
+    assert len(response.json()["todos"]) == expected_user
 
 
 @pytest.mark.asyncio
@@ -69,18 +73,15 @@ async def test_filter_by_state(session, user, client, token):
     assert len(response.json()["todos"]) == expected_todos
 
 
-
 @pytest.mark.asyncio
-async def test_all_tasks_params(
-    session, user, client, token
-):
+async def test_all_tasks_params(session, user, client, token):
     expected_todos = 5
     session.add_all(
         TodoFactory.create_batch(
             5,
             user_id=user.id,
-            title='Test todo combined',
-            description='combined description',
+            title="Test todo combined",
+            description="combined description",
             state=TodoState.done,
         )
     )
@@ -89,19 +90,19 @@ async def test_all_tasks_params(
         TodoFactory.create_batch(
             3,
             user_id=user.id,
-            title='Other title',
-            description='other description',
+            title="Other title",
+            description="other description",
             state=TodoState.todo,
         )
     )
     await session.commit()
 
     response = client.get(
-        '/todos/?title=Test todo combined&description=combined&state=done',
-        headers={'Authorization': f'Bearer {token}'},
+        "/tasks/?title=Test todo combined&description=combined&state=done",
+        headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert len(response.json()['todos']) == expected_todos
+    assert len(response.json()["todos"]) == expected_todos
 
 
 @pytest.mark.asyncio
@@ -116,3 +117,28 @@ async def test_todos_pagination(session, user, client, token):
     )
 
     assert len(response.json()["todos"]) == pagination_todo
+
+
+@pytest.mark.asyncio
+async def test_delete_task(session, user, client, token):
+    todo = TodoFactory(user_id=user.id)
+    session.add(todo)
+    await session.commit()
+
+    response = client.delete(
+        f"/tasks/{todo.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.json() == {
+        "message": "Task has been deleted successfully."
+    }
+
+
+def test_delete_wrong_user(client, token):
+    response = client.delete(
+        f"/tasks/{10}", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "Task not found."}
