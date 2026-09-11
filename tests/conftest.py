@@ -3,41 +3,27 @@ from datetime import datetime
 
 import factory
 import factory.fuzzy
-from fast_zero.models import TodoFilter, TodoState
-
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.pool import StaticPool
+from testcontainers.postgres import PostgresContainer
 
 from fast_zero.app import app
 from fast_zero.database import get_session
-from fast_zero.models import User, table_registry
+from fast_zero.models import Todo, TodoState, User, table_registry
 from fast_zero.security import get_password_hash
 
 
+@pytest_asyncio.fixture(scope="session")
+async def engine():
+    with PostgresContainer("postgres:17", driver="psycopg") as postgres:
+        _engine = create_async_engine(postgres.get_connection_url())
+        yield _engine
+
+
 @pytest_asyncio.fixture
-async def session():
-    """
-    Cria uma sessão assíncrona temporária para testes.
-
-    Esta fixture:
-
-    - cria um banco SQLite em memória;
-    - inicializa todas as tabelas definidas no metadata;
-    - fornece uma AsyncSession para os testes;
-    - remove as tabelas ao final da execução.
-
-    O uso de StaticPool garante que a mesma conexão
-    seja reutilizada durante todo o teste, evitando
-    perda de dados no banco em memória.
-    """
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+async def session(engine):
     async with engine.begin() as conn:
         await conn.run_sync(table_registry.metadata.create_all)
 
@@ -171,10 +157,13 @@ class UserFactory(factory.Factory):
 
 
 class TodoFactory(factory.Factory):
-    class Meta:
-        model = TodoFilter
+    """Essa classe e uma fabrica de dados do modelo
+    Todo gera tarefas randomicamente para testes"""
 
-    title = factory.Faker('text')
-    description = factory.Faker('text')
+    class Meta:
+        model = Todo
+
+    title = factory.Faker("text")
+    description = factory.Faker("text")
     state = factory.fuzzy.FuzzyChoice(TodoState)
     user_id = 1

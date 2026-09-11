@@ -64,8 +64,7 @@ async def list_and_filter_todos(
     return {"todos": todos.all()}
 
 
-
-@router.patch('/{todo_id}', response_model=TodoPublic)
+@router.patch("/{todo_id}", response_model=TodoPublic)
 async def patch_todo(
     todo_id: int, session: Session, user: CurrentUser, todo: TodoUpdate
 ):
@@ -75,7 +74,7 @@ async def patch_todo(
 
     if not db_todo:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='Task not found.'
+            status_code=HTTPStatus.NOT_FOUND, detail="Task not found."
         )
 
     for key, value in todo.model_dump(exclude_unset=True).items():
@@ -103,4 +102,3 @@ async def delete_todo(todo_id: int, session: Session, user: CurrentUser):
     await session.commit()
 
     return {"message": "Task has been deleted successfully."}
-

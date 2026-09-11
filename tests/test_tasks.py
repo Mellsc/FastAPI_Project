@@ -2,26 +2,30 @@ from http import HTTPStatus
 
 import pytest
 
-from fast_zero.models import TodoState
+from fast_zero.models import Todo, TodoState
 from tests.conftest import TodoFactory
 
 
-def test_create_task(client, token):
-    response = client.post(
-        "/tasks/",
-        headers={"Authorization": f"Bearer {token}"},
-        json={
+@pytest.mark.asyncio
+async def test_create_task(client, token, mock_db_time):
+    with mock_db_time(model=Todo) as time:
+        response = client.post(
+            "/tasks/",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "title": "Test todo",
+                "description": "Test todo description",
+                "state": "draft",
+            },
+        )
+        assert response.json() == {
+            "id": 1,
             "title": "Test todo",
             "description": "Test todo description",
             "state": "draft",
-        },
-    )
-    assert response.json() == {
-        "id": 1,
-        "title": "Test todo",
-        "description": "Test todo description",
-        "state": "draft",
-    }
+            "created_at": time.isoformat(),
+            "updated_at": time.isoformat(),
+        }
 
 
 @pytest.mark.asyncio
@@ -142,3 +146,29 @@ def test_delete_wrong_user(client, token):
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {"detail": "Task not found."}
+
+
+def test_patch_todo_error(client, token):
+    response = client.patch(
+        "/todos/10",
+        json={},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "Task not found."}
+
+
+@pytest.mark.asyncio
+async def test_patch_todo(session, client, user, token):
+    todo = TodoFactory(user_id=user.id)
+
+    session.add(todo)
+    await session.commit()
+
+    response = client.patch(
+        f"/todos/{todo.id}",
+        json={"title": "teste!"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["title"] == "teste!"

@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jwt import decode, encode
+from jwt import ExpiredSignatureError, decode, encode
 from jwt.exceptions import PyJWTError
 from pwdlib import PasswordHash
 from sqlalchemy import select
@@ -34,9 +34,6 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-# criando token jwt
-
-
 def create_access_token(
     data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 ):
@@ -53,13 +50,27 @@ def create_access_token(
     return encoded_jwt
 
 
-# autenticação via jwt
-
-
 async def get_current_user(
     session: SessionDep,
     token: str = Depends(oauth2_scheme),
 ):
+    """Obtém o usuário autenticado a partir de um token JWT.
+
+    Decodifica o token recebido no cabeçalho Authorization,
+    valida sua assinatura e expiração e retorna o usuário
+    correspondente cadastrado no banco de dados.
+
+    Args:
+        session: Sessão assíncrona do banco de dados.
+        token: Token JWT extraído do cabeçalho Authorization.
+
+    Returns:
+        Instância do usuário autenticado.
+
+    Raises:
+        HTTPException: Retorna 401 caso o token seja inválido,
+            expirado ou o usuário não seja encontrado.
+    """
     credentials_exception = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -74,6 +85,9 @@ async def get_current_user(
 
         if not subject_email:
             raise credentials_exception
+
+    except ExpiredSignatureError:
+        raise credentials_exception
 
     except PyJWTError:
         raise credentials_exception
