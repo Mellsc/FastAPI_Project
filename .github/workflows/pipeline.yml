@@ -5,7 +5,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-     env:
+    env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
       ALGORITHM: ${{ secrets.ALGORITHM }}
@@ -18,7 +18,7 @@ jobs:
       - name: Instalar o python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.14'
+          python-version: '3.12'
 
       - name: Instalar o poetry
         run: pipx install poetry
@@ -27,4 +27,4 @@ jobs:
         run: poetry install
 
       - name: Executar testes
-        run: poetry run test
+        run: poetry run pytest
