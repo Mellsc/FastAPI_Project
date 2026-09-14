@@ -155,7 +155,7 @@ def test_patch_todo_error(client, token):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {"detail": "Task not found."}
+    assert response.json() == {"detail": "Not Found"}
 
 
 @pytest.mark.asyncio

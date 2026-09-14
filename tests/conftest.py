@@ -15,7 +15,7 @@ from fast_zero.models import Todo, TodoState, User, table_registry
 from fast_zero.security import get_password_hash
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def engine():
     with PostgresContainer("postgres:17", driver="psycopg") as postgres:
         _engine = create_async_engine(postgres.get_connection_url())
